@@ -17,6 +17,10 @@ edited by christopher-hsu from coco66 for multi_agent
 import numpy as np
 from envs.maTTenv.metadata import METADATA
 import envs.maTTenv.util as util
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.distributions.categorical import Categorical
 
 class Agent(object):
     def __init__(self, agent_id, dim, sampling_period, limit, collision_func, margin=METADATA['margin']):
@@ -78,6 +82,50 @@ class AgentSE2(Agent):
         self.range_check()        
 
         return is_col
+
+class DecentralizedPPOAgent(AgentSE2, nn.Module):
+
+    def __init__(self, agent_id, dim, sampling_period, limit, collision_func, margin=METADATA['margin'], policy=None):
+        
+        super(self, nn.Module).__init__()
+        super(self, AgentSE2).__init__(agent_id, dim, sampling_period, limit, collision_func, margin, policy)
+        
+        self.critic = nn.Sequential(
+            self._layer_init(nn.Linear(dim, 64)),
+            nn.Tanh(),
+            self._layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            self._layer_init(nn.Linear(64, 1), std=1.0),
+        )
+        self.actor = nn.Sequential(
+            self._layer_init(nn.Linear(dim, 64)),
+            nn.Tanh(),
+            self._layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            self._layer_init(nn.Linear(64, envs.single_action_space.n), std=0.01),
+        )
+
+    def get_value(self, x):
+        return self.critic(x)
+
+    def get_action_and_value(self, x, action=None):
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
+        if action is None:
+            action = probs.sample()
+        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+
+    def _layer_init(self, layer, std=np.sqrt(2), bias_const=0.0):
+        torch.nn.init.orthogonal_(layer.weight, std)
+        torch.nn.init.constant_(layer.bias, bias_const)
+        return layer
+        
+    def reset(self, init_state):
+        super().reset(init_state)
+
+    def update(self, observation=None, margin_pos=None, col=False):
+        control_input = self.get_action_and_value(observation)
+        return super().update(control_input=control_input, margin_pos=margin_pos, col=col)
 
 def SE2Dynamics(x, dt, u):  
     assert(len(x)==3)          

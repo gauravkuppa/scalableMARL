@@ -35,7 +35,7 @@ setTrackingEnv0 : Double Integrator Target model with KF belief tracker
 
 class setTrackingEnv0(maTrackingBase):
 
-    def __init__(self, num_agents=1, num_targets=2, map_name='empty', 
+    def __init__(self, num_agents=2, num_targets=2, map_name='empty', 
                         is_training=True, known_noise=True, **kwargs):
         super().__init__(num_agents=num_agents, num_targets=num_targets,
                         map_name=map_name, is_training=is_training)
@@ -76,14 +76,14 @@ class setTrackingEnv0(maTrackingBase):
         self.get_reward()
 
     def setup_agents(self):
-        self.agents = [AgentSE2(agent_id = 'agent-' + str(i), 
+        self.agents = [AgentSE2(agent_id=i, 
                         dim=self.agent_dim, sampling_period=self.sampling_period, 
                         limit=self.limit['agent'], 
                         collision_func=lambda x: map_utils.is_collision(self.MAP, x))
                         for i in range(self.num_agents)]
 
     def setup_targets(self):
-        self.targets = [AgentDoubleInt2D(agent_id = 'target-' + str(i),
+        self.targets = [AgentDoubleInt2D(agent_id =i,
                         dim=self.target_dim, sampling_period=self.sampling_period, 
                         limit=self.limit['target'],
                         collision_func=lambda x: map_utils.is_collision(self.MAP, x),
@@ -91,7 +91,7 @@ class setTrackingEnv0(maTrackingBase):
                         for i in range(self.num_targets)]
 
     def setup_belief_targets(self):
-        self.belief_targets = [KFbelief(agent_id = 'target-' + str(i),
+        self.belief_targets = [KFbelief(agent_id = f"agent-{str(i)}",
                         dim=self.target_dim, limit=self.limit['target'], A=self.targetA,
                         W=self.target_noise_cov, obs_noise_func=self.observation_noise, 
                         collision_func=lambda x: map_utils.is_collision(self.MAP, x))
@@ -107,12 +107,6 @@ class setTrackingEnv0(maTrackingBase):
         Return an observation state dict with agent ids (keys) that refer to their observation
         """
         self.rng = np.random.default_rng()
-        try: 
-            self.nb_agents = kwargs['nb_agents']
-            self.nb_targets = kwargs['nb_targets']
-        except:
-            self.nb_agents = np.random.randint(1, self.num_agents)
-            self.nb_targets = np.random.randint(1, self.num_targets)
         obs_dict = {}
         init_pose = self.get_init_pose(**kwargs)
         # Initialize agents

@@ -1,6 +1,7 @@
 import maTTenv
 import numpy as np
 import argparse
+import gym
 
 parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--env', help='environment ID', type=str, default='setTracking-v0')
@@ -10,12 +11,15 @@ parser.add_argument('--nb_agents', help='the number of agents', type=int, defaul
 parser.add_argument('--nb_targets', help='the number of targets', type=int, default=4)
 parser.add_argument('--log_dir', help='a path to a directory to log your data', type=str, default='.')
 parser.add_argument('--map', type=str, default="emptyMed")
+parser.add_argument('--num_envs', help='the number of agents', type=int, default=4)
+
 
 args = parser.parse_args()
 
 # @profile
 def main():
-    env = maTTenv.make(args.env,
+    envs = gym.vector.SyncVectorEnv(
+        [maTTenv.make(args.env,
                     render=args.render,
                     record=args.record,
                     directory=args.log_dir,
@@ -23,22 +27,23 @@ def main():
                     num_agents=args.nb_agents,
                     num_targets=args.nb_targets,
                     is_training=False,
-                    )
+                    ) for i in range(args.num_envs)]
+    )
     nlogdetcov = []
     action_dict = {}
     done = {'__all__':False}
 
-    obs = env.reset()
+    obs = envs.reset()
     # See below why this check is needed for training or eval loop
     while not done['__all__']:
-        if args.render:
-            env.render()
+        #if args.render:
+        #    env.render()
 
         for agent_id, o in obs.items():
-            action_dict[agent_id] = env.action_space.sample()
+            action_dict[agent_id] = envs.single_action_space.sample()
 
-        obs, rew, done, info = env.step(action_dict)
-        nlogdetcov.append(info['mean_nlogdetcov'])
+        obs, rew, done, info = envs.step(action_dict)
+        [nlogdetcov.append(i['mean_nlogdetcov']) for i in info]
 
     print("Sum of negative logdet of the target belief covariances : %.2f"%np.sum(nlogdetcov))
 

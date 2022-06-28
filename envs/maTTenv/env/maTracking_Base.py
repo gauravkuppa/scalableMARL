@@ -13,6 +13,7 @@ class maTrackingBase(gym.Env):
     def __init__(self, num_agents=2, num_targets=1, map_name='empty',
                         is_training=True, known_noise=True, **kwargs):
         self.seed()   #used with gym
+        self.metadata = "tracking_env"
         self.id = 'maTracking-base'
         self.action_space = spaces.Discrete(len(METADATA['action_v']) * \
                                                 len(METADATA['action_w']))

@@ -196,7 +196,7 @@ class PPOAR(PPO):
                 nn.Tanh(),
                 layer_init(nn.Linear(64, 64)),
                 nn.Tanh(),
-            )
+            ).to(self.device)
         self.obs_dim = obs_dim
         self.critic = nn.Sequential(
             layer_init(nn.Linear(128, 64)),

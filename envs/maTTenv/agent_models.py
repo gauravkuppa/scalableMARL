@@ -25,7 +25,8 @@ from copy import deepcopy
 from numpy import linalg as LA
 
 class Agent(object):
-    def __init__(self, agent_id, dim, sampling_period, limit, collision_func, margin=METADATA['margin'],KFBelief = None):
+    def __init__(self, agent_id, dim, sampling_period, limit, collision_func, margin=METADATA['margin'],
+                 KFBelief = None, TOTAL_AGENTS = None,TOTAL_TIMESTEPS = None):
         self.agent_id = agent_id
         self.dim = dim
         self.sampling_period = sampling_period
@@ -33,6 +34,10 @@ class Agent(object):
         self.collision_func = collision_func
         self.margin = margin
         self.belief = KFBelief
+        self.max_agent_history = METADATA['agent_rendz_hist']
+        self.agent_history_dict = {}
+        self.total_agents = TOTAL_AGENTS
+        self.total_time_steps = TOTAL_TIMESTEPS
 
     def setupBelief(self,belief):
         #List of belief over all targets
@@ -44,12 +49,13 @@ class Agent(object):
             self.belief[targetID].update(z_t,self.state)
 
 
-    def updateCommBelief(self,comms_recv_beliefs):
+    def updateCommBelief(self,comms_recv_beliefs,agentCommsDict):
         '''
 
         :param comms_recv_beliefs: List of KF/UKF belifs from communicated agents
         :return: intermediate update beliefs
         '''
+
 
         intermediateBelief = deepcopy(self.belief)
         if len(comms_recv_beliefs)==0:
@@ -66,7 +72,28 @@ class Agent(object):
                     intermediateBelief[target_id].state = comms_recv_beliefs[neigh][target_id].state
                     intermediateBelief[target_id].cov = comms_recv_beliefs[neigh][target_id].cov
 
+
+        for ID in agentCommsDict.keys():
+            if ID in self.agent_history_dict.keys():
+                self.agent_history_dict[ID] = np.array([agentCommsDict[ID][0],agentCommsDict[ID][1],0])
+
         return intermediateBelief
+
+    def update_agent_rendz_history(self):
+        for ID in self.agent_history_dict.keys():
+            self.agent_history_dict[ID][-1] += 1/self.total_time_steps
+
+    def get_agent_rendz_history(self):
+        observation = np.zeros((self.max_agent_history,4))
+        observation[:,-1] = -1.0
+        observation[:,0] = -1.0
+
+        for k,ID in enumerate(self.agent_history_dict.keys()):
+            observation[k,0] = self.agent_history_dict[ID]/self.total_agents
+            observation[k,:] = self.agent_history_dict[ID]
+
+        return observation
+
 
     def range_check(self):
         self.state = np.clip(self.state, self.limit[0], self.limit[1])
@@ -81,7 +108,7 @@ class Agent(object):
         self.state = init_state
 
 class AgentSE2(Agent):
-    def __init__(self, agent_id, dim, sampling_period, limit, collision_func, 
+    def __init__(self, agent_id, dim, sampling_period, limit, collision_func,
                         margin=METADATA['margin'], policy=None):
         super().__init__(agent_id, dim, sampling_period, limit, collision_func, margin=margin)
         self.policy = policy

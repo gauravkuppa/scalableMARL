@@ -93,7 +93,9 @@ def decentralized_ppo(envs, model, args, run_name, notes=None):
             keys: [agent-ids]
             values: torch.Tensor() of torch.Size[num_envs]
     """
-    obs = torch.zeros((args.num_steps, args.num_envs, args.nb_agents) + envs.single_observation_space["agent-0"].shape).to(device)
+
+    combined_observation_space = envs.single_observation_space['agent-0'].shape
+    obs = torch.zeros((args.num_steps, args.num_envs, args.nb_agents)+combined_observation_space).to(device)
     actions = torch.zeros((args.num_steps, args.num_envs, args.nb_agents) + envs.single_action_space.shape).to(device)
     logprobs = torch.zeros((args.num_steps, args.num_envs, args.nb_agents)).to(device)
 

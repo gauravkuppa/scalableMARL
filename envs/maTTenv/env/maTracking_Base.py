@@ -36,6 +36,7 @@ class maTrackingBase(gym.Env):
         self.sensor_b_sd = METADATA['sensor_b_sd']
         self.sensor_r = METADATA['sensor_r']
         self.fov = METADATA['fov']
+        self.T_MAX_STEPS = kwargs['T_MAX_STEPS']
         map_dir_path = '/'.join(map_utils.__file__.split('/')[:-1])
         self.MAP = map_utils.GridMap(
             map_path=os.path.join(map_dir_path, map_name), 

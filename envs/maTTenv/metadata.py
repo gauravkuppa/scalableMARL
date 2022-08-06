@@ -5,6 +5,7 @@ METADATA_v1 = {
         'version' : 1,
         'sensor_r': 10.0,
         'comms_r': 15.0,
+        'agent_rendz_hist':10,
         'fov' : 360,
         'sensor_r_sd': 0.2, # sensor range noise.
         'sensor_b_sd': 0.01, # sensor bearing noise.
@@ -28,6 +29,7 @@ METADATA_v2 = {
         'version' : 1,
         'sensor_r': 10.0,
         'comms_r': 15.0,
+        'agent_rendz_hist':10,
         'fov' : 360,
         'sensor_r_sd': 0.2, # sensor range noise.
         'sensor_b_sd': 0.01, # sensor bearing noise.
@@ -52,7 +54,8 @@ METADATA_v3 = {
         'sensor_r': 10.0,
         'comms_r': 15.0,
         'fov' : 360,
-        'sensor_r_sd': 0.2, # sensor range noise.
+        'sensor_r_sd': 0.2,
+        'agent_rendz_hist':10, # sensor range noise.
         'sensor_b_sd': 0.01, # sensor bearing noise.
         'target_init_cov': 30.0, # initial target diagonal Covariance.
         'target_init_vel': 0.0, # target's initial velocity.
@@ -75,6 +78,7 @@ METADATA_v4 = {
         'sensor_r': 10.0,
         'comms_r': 15.0,
         'fov' : 360,
+        'agent_rendz_hist':10,
         'sensor_r_sd': 0.2, # sensor range noise.
         'sensor_b_sd': 0.01, # sensor bearing noise.
         'target_init_cov': 30.0, # initial target diagonal Covariance.

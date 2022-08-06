@@ -124,10 +124,181 @@ class PPO(nn.Module):
         self.envs = envs
         self.args = args
         
+        self.key = list(envs.single_observation_space.keys())[0]
+        self.keys_agent = list(envs.full_observation_space[self.key].keys())
+
+        obs_dim = {}
+        self.act_dim = envs.single_action_space.n
+        for k in self.keys_agent:
+            obs_dim[k] = np.array(envs.full_observation_space[self.key][k].shape)
+
+        self.obs_dim = obs_dim
+
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(obs_dim['target'].prod(), 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 1), std=1.0),
+        )
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(obs_dim['target'].prod(), 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, self.act_dim), std=0.01),
+        )
+        self.device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+
+    def decode(self,observation):
+        split_size = [self.obs_dim[k].prod() for k in self.obs_dim.keys()]
+        observation_list = torch.split(observation,split_size,dim=-1)
+        observation_list_reshaped = {}
+        for obs,key in zip(observation_list,list(self.obs_dim.keys())):
+            obs = obs.view([-1] + self.obs_dim[key].tolist())
+            observation_list_reshaped[key] = obs
+        return observation_list_reshaped
+
+    def get_value(self, x):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not x.is_cuda:
+            x = x.to(self.device)
+
+        x_list = self.decode(x)
+        x = x_list['target']
+        x = x.view(-1, x.shape[-2] * x.shape[-1])
+        return self.critic(x)
+
+    def get_action_and_value(self, x, action=None):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not x.is_cuda:
+            x = x.to(self.device)
+        x_list = self.decode(x)
+        x = x_list['target']
+        x = x.view(-1, x.shape[-2] * x.shape[-1])
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
+        if action is None:
+            action = probs.sample()
+        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+
+class PPOAR(PPO):
+    def __init__(self, envs, args):
+        super(PPOAR, self).__init__(envs,args)
+        obs_dim = {}
+        self.backend = {}
+        for k in self.keys_agent:
+            obs_dim[k] = np.array(envs.full_observation_space[self.key][k].shape)
+            self.backend[k] = nn.Sequential(
+                layer_init(nn.Linear(obs_dim[k].prod(), 64)),
+                nn.Tanh(),
+                layer_init(nn.Linear(64, 64)),
+                nn.Tanh(),
+            )
+        self.obs_dim = obs_dim
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(128, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 1), std=1.0),
+        )
+
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(128, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, self.act_dim), std=0.01)
+        )
+
+    def get_value(self, x):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not x.is_cuda:
+            x = x.to(self.device)
+
+        x_list = self.decode(x)
+        out_list = []
+        for _,k in enumerate(self.backend.keys()):
+            x_list[k] = x_list[k].view(-1, x_list[k].shape[-2] * x_list[k].shape[-1])
+            out_list.append(self.backend[k](x_list[k]))
+        x = torch.cat(out_list,dim=-1)
+        return self.critic(x)
+
+    def get_action_and_value(self, x, action=None):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not x.is_cuda:
+            x = x.to(self.device)
+        x_list = self.decode(x)
+        out_list = []
+        for _,k in enumerate(self.backend.keys()):
+            x_list[k] = x_list[k].view(-1, x_list[k].shape[-2] * x_list[k].shape[-1])
+            out_list.append(self.backend[k](x_list[k]))
+
+        x = torch.cat(out_list,dim=-1)
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
+        if action is None:
+            action = probs.sample()
+        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+
+# TODO: Need to write model
+class PPOAttention(nn.Module):
+    def __init__(self, envs, args):
+        super().__init__()
+        self.envs = envs
+        self.args = args
+
+        self.critic = nn.Sequential(
+            layer_init(nn.Linear(self.obs_dim, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 1), std=1.0),
+        )
+        self.actor = nn.Sequential(
+            layer_init(nn.Linear(self.obs_dim, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, 64)),
+            nn.Tanh(),
+            layer_init(nn.Linear(64, self.act_dim), std=0.01),
+        )
+        self.device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+
+    # decodes the observation tensor
+    def decode(self):
+        pass
+
+    def get_value(self, x):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not x.is_cuda:
+            x = x.to(self.device)
+        x = x.view(-1, x.shape[-2] * x.shape[-1])
+        return self.critic(x)
+
+    def get_action_and_value(self, x, action=None):
+        if isinstance(x, np.ndarray):
+            x = torch.from_numpy(x)
+        if not x.is_cuda:
+            x = x.to(self.device)
+        x = x.view(-1, x.shape[-2] * x.shape[-1])
+        logits = self.actor(x)
+        probs = Categorical(logits=logits)
+        if action is None:
+            action = probs.sample()
+        return action, probs.log_prob(action), probs.entropy(), self.critic(x)
+
+class PPOAttentionAR(nn.Module):
+    def __init__(self, envs, args):
+        super().__init__()
+        self.envs = envs
+        self.args = args
+
         key = list(envs.single_observation_space.keys())[0]
         obs_dim = np.array(envs.single_observation_space[key].shape).prod()
         act_dim = envs.single_action_space.n
-        
+
         self.critic = nn.Sequential(
             layer_init(nn.Linear(obs_dim, 64)),
             nn.Tanh(),
@@ -143,6 +314,10 @@ class PPO(nn.Module):
             layer_init(nn.Linear(64, act_dim), std=0.01),
         )
         self.device = torch.device("cuda" if torch.cuda.is_available() and args.cuda else "cpu")
+
+    # decodes the observation tensor
+    def decode(self):
+        pass
 
     def get_value(self, x):
         if isinstance(x, np.ndarray):

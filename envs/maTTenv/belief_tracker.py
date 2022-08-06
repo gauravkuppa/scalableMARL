@@ -18,7 +18,7 @@ class KFbelief(object):
     z : observation (r, alpha)
     """
     def __init__(self, agent_id, dim, limit, dim_z=2, A=None, W=None,
-                    obs_noise_func=None, collision_func=None):
+                    obs_noise_func=None, collision_func=None,CovLimit =None):
         """
         dim : dimension of state
         limit : An array of two vectors.
@@ -38,6 +38,7 @@ class KFbelief(object):
         self.obs_noise_func = obs_noise_func
         self.collision_func = collision_func
         self.cov = np.eye(self.dim)
+        self.CovLimit = 1e6 if CovLimit is None else CovLimit
 
     def reset(self, init_state, init_cov):
         self.state = init_state
@@ -47,7 +48,7 @@ class KFbelief(object):
         # Prediction
         state_new = np.matmul(self.A, self.state)
         cov_new = np.matmul(np.matmul(self.A, self.cov), self.A.T) +  self.W
-        if True: # LA.det(cov_new) < 1e6:
+        if LA.det(cov_new) < self.CovLimit:
             self.cov = cov_new
         self.state = np.clip(state_new, self.limit[0], self.limit[1])
 

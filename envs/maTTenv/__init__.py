@@ -13,6 +13,7 @@ def make(env_name, render=False, figID=0, record=False, directory='',
     """
     if T_steps is None:
         T_steps = 500
+    kwargs['T_MAX_STEPS'] = T_steps
 
     if env_name == 'setTracking-v0':
         from envs.maTTenv.env.setTracking_v0 import setTrackingEnv0

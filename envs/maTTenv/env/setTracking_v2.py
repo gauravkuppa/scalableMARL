@@ -56,6 +56,8 @@ class setTrackingEnv2(maTrackingBase):
         self.limit['target'] = [np.concatenate((self.MAP.mapmin,[-METADATA['target_vel_limit'], -METADATA['target_vel_limit']])),
                                 np.concatenate((self.MAP.mapmax, [METADATA['target_vel_limit'], METADATA['target_vel_limit']]))]
         rel_vel_limit = METADATA['target_vel_limit'] + METADATA['action_v'][0] # Maximum relative speed
+
+        # normalize
         self.limit['state'] = [np.array(([0.0, 0.0, 0.0, -np.pi, -rel_vel_limit, -10*np.pi, -50.0, 0.0])),
                                np.array(([1.0, 1.0, 600.0, np.pi, rel_vel_limit, 10*np.pi, 50.0, 2.0]))]
 
@@ -167,7 +169,7 @@ class setTrackingEnv2(maTrackingBase):
                 observed = 0.0
             else:
                 observed = float(isObserved[jj])
-            observation.append([self.agents[agentID].state[0]/51, self.agents[agentID].state[1]/51, r, alpha, r_dot_b, alpha_dot_b, logdetcov, observed])
+            observation.append([self.agents[agentID].state[0]/self.MAP.mapmax[0], self.agents[agentID].state[1]/self.MAP.mapmax[0], r, alpha, r_dot_b, alpha_dot_b, logdetcov, observed])
 
         return torch.tensor(observation,dtype=torch.float32)
     

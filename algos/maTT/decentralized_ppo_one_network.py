@@ -105,6 +105,9 @@ def decentralized_ppo(envs, model, args, run_name, notes=None):
     dones = torch.zeros((args.num_steps, args.num_envs)).to(device)
     values = torch.zeros((args.num_steps, args.num_envs, args.nb_agents)).to(device)
 
+    if args.ppomodel=='PPOAtt' and args.attention_reward:
+        attention_weights = torch.zeros((args.num_steps, args.num_envs,args.nb_agents,args.nb_targets)).to(device)
+
     # TRY NOT TO MODIFY: start the game
     global_step = 0
     start_time = time.time()
@@ -130,12 +133,19 @@ def decentralized_ppo(envs, model, args, run_name, notes=None):
             action_dict = [{} for _ in range(args.num_envs)]
             with torch.no_grad():
                 for i, agent_id in enumerate(next_obs.keys()):
-                    action, logprob, _, value = agent_network.get_action_and_value(next_obs[agent_id])
+                    if args.ppomodel == 'PPOAtt':
+                        action, logprob, _, value, att_w = agent_network.get_action_and_value(
+                            next_obs[agent_id])
+                    else:
+                        action, logprob, _, value = agent_network.get_action_and_value(next_obs[agent_id])
+
                     for j in range(action.shape[0]): # num_envs
                         action_dict[j][agent_id] = action[j].item()
                     actions[step, :, i] = action.to(device)
                     logprobs[step, :, i] = logprob.to(device)
                     values[step, :, i] = value.view(-1).to(device)
+                    if args.ppomodel == 'PPOAtt' and args.attention_reward:
+                        attention_weights[step,:,i,:] = att_w.to(device)
             
             if args.render:
                 envs.envs[0].render()
@@ -145,6 +155,11 @@ def decentralized_ppo(envs, model, args, run_name, notes=None):
                 rewards[step] = torch.tensor(np.stack(info['reward_all'])).to(device)
             else:
                 rewards[step] = torch.tensor(np.repeat(reward,  args.nb_agents, axis=0).reshape(args.num_envs, args.nb_agents)).to(device)
+
+            # if args.attention_reward:
+            #     # add individual and global target distribution reward?
+            #     for i, agent_id in enumerate(next_obs.keys()):
+            #         rewards[:,:,i] +=
             metrics[step] = torch.from_numpy(np.stack(info['metrics']))
             next_done = torch.Tensor(done).to(device)
             if torch.sum(next_done).item() == args.num_envs:
@@ -210,7 +225,15 @@ def decentralized_ppo(envs, model, args, run_name, notes=None):
                     end = start + args.minibatch_size
                     mb_inds = b_inds[start:end]
                     # logprobs are being compared. make sure the log probs are referencing the same targets
-                    _, newlogprob, entropy, newvalue = agent_network.get_action_and_value(b_obs[mb_inds], b_actions.long()[mb_inds]) # b_obs[mb_inds] --> (64, num_targets, observation.dim)
+
+                    if args.ppomodel == 'PPOAtt':
+                        _, newlogprob, entropy, newvalue, _ = agent_network.get_action_and_value(
+                            b_obs[mb_inds],
+                            b_actions.long()[mb_inds])  # b_obs[mb_inds] --> (64, num_targets, observation.dim)
+                    else:
+                        _, newlogprob, entropy, newvalue = agent_network.get_action_and_value(b_obs[mb_inds],
+                                                                                                         b_actions.long()[
+                                                                                                             mb_inds])
                     logratio = newlogprob - b_logprobs[mb_inds]
                     ratio = logratio.exp()
 

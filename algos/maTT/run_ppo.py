@@ -82,7 +82,10 @@ def parse_args():
         help="the maximum norm for the gradient clipping")
     parser.add_argument("--target_kl", type=float, default=None,
         help="the target KL divergence threshold")
-    parser.add_argument("--ppomodel",type=str,default='PPO',help='choose from PPO,PPOAR,PPOAtt,PPOAttAR')
+    parser.add_argument("--ppomodel",type=str,default='PPO',
+                        help='choose from PPO,PPOAR,PPOAtt,PPOAttAR')
+    parser.add_argument("--attention_reward",type=bool,default=False,
+                        help='adds attention based target distribution reward')
     parser.add_argument('--scaled', action='store_true')
     parser.set_defaults(scaled=False)
     parser.add_argument('--continue_training', action='store_true')

@@ -151,7 +151,7 @@ def train(save_dir, args, notes=None):
     # env_fn = lambda : env
     model = set_model(env, args)
     if args.continue_training:
-        fname = os.path.join("runs", run_name, f"seed_{args.seed}", args.log_fname)
+        fname = os.path.join("runs", args.log_dir.split(os.sep)[-1], f"seed_{args.seed}", args.log_fname)
         map_location = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         model.load_state_dict(torch.load(fname, map_location))
     trained_model = decentralized_ppo(env, model, args, run_name, notes)

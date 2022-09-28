@@ -22,6 +22,8 @@ def load_pytorch_policy(fpath, fname, model, seed):
     assert os.path.exists(fname)
     map_location = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model.load_state_dict(torch.load(fname, map_location))
+    model.to(map_location)
+    
     
     # make function for producing an action given a single state
     def get_action(x, deterministic=True):
@@ -48,7 +50,7 @@ class Test:
 
     def test(self, args, env, act, torch_threads=1):
         num_envs = 1 # hard-coded, only one env for evaluation
-        run_name = args.log_dir.split(os.sep)[-1] + "_eval"
+        run_name = args.log_dir.split(os.sep)[-1] + "_eval_at_" + datetime.datetime.now().strftime("%m%d%H%M") 
         if args.track:
             import wandb
 

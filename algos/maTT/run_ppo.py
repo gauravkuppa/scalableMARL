@@ -12,9 +12,9 @@ from algos.maTT.decentralized_ppo_one_network import decentralized_ppo
 
 import envs
 
-__author__ = 'GaKuppa'
+__author__ = 'Gaurav Kuppa'
 __copyright__ = ''
-__credits__ = ['Christopher D Hsu']
+__credits__ = ['Gaurav Kuppa']
 __license__ = ''
 __version__ = '0.0.1'
 __maintainer__ = 'Christopher D Hsu'
@@ -82,6 +82,10 @@ def parse_args():
         help="the maximum norm for the gradient clipping")
     parser.add_argument("--target_kl", type=float, default=None,
         help="the target KL divergence threshold")
+    parser.add_argument("--ppomodel",type=str,default='PPO',
+                        help='choose from PPO,PPOAR,PPOAtt,PPOAttAR')
+    parser.add_argument("--attention_reward",type=bool,default=False,
+                        help='adds attention based target distribution reward')
     parser.add_argument('--scaled', action='store_true')
     parser.set_defaults(scaled=False)
     parser.add_argument('--continue_training', action='store_true')
@@ -110,7 +114,16 @@ def parse_args():
     # fmt: on
     return args
 
-
+def set_model(env,args):
+    if args.ppomodel =='PPO':
+        model = core.PPO(env, args)
+    elif args.ppomodel == 'PPOAR':
+        model = core.PPOAR(env, args)
+    elif args.ppomodel == 'PPOAtt':
+        model = core.PPOAttention(env, args)
+    elif args.ppomodel == 'PPOAttAR':
+        raise(NotImplemented)
+    return model
 
 def train(save_dir, args, notes=None):
     run_name = save_dir.split(os.sep)[-1]
@@ -136,7 +149,7 @@ def train(save_dir, args, notes=None):
                     )
     # Create env function
     # env_fn = lambda : env
-    model = core.PPO(env, args)
+    model = set_model(env, args)
     if args.continue_training:
         fname = os.path.join("runs", run_name, f"seed_{args.seed}", args.log_fname)
         map_location = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -165,7 +178,7 @@ def test(args):
                     )
 
     # Load saved policy
-    model = core.PPO(env, args)
+    model = set_model(env, args)
     policy = load_pytorch_policy(args.log_dir, args.log_fname, model, args.seed)
 
     # Testing environment

@@ -49,7 +49,7 @@ class MAB(nn.Module):
         O = O if getattr(self, 'ln0', None) is None else self.ln0(O)
         O = O + F.relu(self.fc_o(O))
         O = O if getattr(self, 'ln1', None) is None else self.ln1(O)
-        return O
+        return O,A
 
 
 class SAB(nn.Module):
@@ -70,7 +70,7 @@ class ISAB(nn.Module):
         self.mab1 = MAB(dim_in, dim_out, dim_out, num_heads, ln=ln)
 
     def forward(self, X):
-        H = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
+        H,_ = self.mab0(self.I.repeat(X.size(0), 1, 1), X)
         return self.mab1(X, H)
 
 

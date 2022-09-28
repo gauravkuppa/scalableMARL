@@ -119,7 +119,7 @@ class setTrackingEnv2(maTrackingBase):
 
 
     def get_reward(self, observed=None, is_training=True):
-        return self.reward_fun(self.agents, self.nb_targets,self.belief_targets,is_training,c_mean=0.1,scaled = self.scaled)
+        return self.reward_fun(self.agents, self.nb_targets,self.belief_targets,observed,is_training,c_mean=0.1,scaled = self.scaled)
     
     def reset(self,**kwargs):
         """
@@ -337,12 +337,14 @@ class setTrackingEnv2(maTrackingBase):
 
         return coverage_reward
 
-    def reward_fun(self, agents, nb_targets, belief_targets, is_training=True, c_mean=0.1,scaled = False):
+    def reward_fun(self, agents, nb_targets, belief_targets, observed, is_training=True, c_mean=0.1,scaled = False):
         #TODO: reward should be per agent
+        global_weight = 0.5
+        local_weight = 0.2
         globaldetcov = [LA.det(b_target.cov) for b_target in belief_targets]
-
-
         globaldetcov = np.ravel(globaldetcov)
+        global_max_reward = -np.log(np.max(globaldetcov))
+        global_reward = global_weight * c_mean * global_max_reward
 
         r_detcov_sum = - np.sum(np.log(globaldetcov))
         reward = c_mean * r_detcov_sum
@@ -390,40 +392,28 @@ class setTrackingEnv2(maTrackingBase):
         #     self.coverage_reward_factor = self.coverage_reward_factor/np.prod(self.MAP.mapmax) * torch.exp(torch.Tensor([-(self.steps)/50])) + sensor_footprint
         
         reward_dict = []
-        if self.reward_type=="Max":
-            for id,agent in enumerate(self.agents):
-                detcov = [LA.det(b.cov) for b in agent.belief]
-                detcov = np.ravel(detcov)
-                if is_training:
-                    detcov_max = - np.log(np.max(globaldetcov))
-                    #print("centralized")
+        for id,agent in enumerate(self.agents):
+            observed_detcov = [LA.det(belief.cov) for target_id, belief in enumerate(agent.belief) if observed[id][target_id]]
+            detcov = [LA.det(b.cov) for b in agent.belief]
+            detcov = np.ravel(detcov)
+            if is_training:
+                if observed_detcov:
+                    #print(len(observed_detcov))
+                    detcov = np.ravel(observed_detcov)
+                    local_detcov = - np.mean(np.log(detcov))
                 else:
-                    detcov_max = - np.log(np.max(detcov))
-                    #print("individual")
-                reward_dict.append(self.coverage_reward_factor*coverage_rew_dict[id] + detcov_max )
-        elif self.reward_type=="Mean":
-            for id,agent in enumerate(self.agents):
-                detcov = [LA.det(b.cov) for b in agent.belief]
-                detcov = np.ravel(detcov)
-                detcov_max = - np.log(detcov).mean()
-                reward_dict.append(self.coverage_reward_factor*coverage_rew_dict[id] + detcov_max)
-        
-        if scaled:
-            for agent_index in range(len(reward_dict)):
-                distance = [np.linalg.norm(agents[agent_index].state[:2] - b_target.state[:2]) for b_target in agents[agent_index].belief]
-                distance = np.array(distance) # distance.sort()
-                if distance.shape[0] > 1:
-                    indices = np.argsort(distance)
-                    fraction = np.sum(distance[indices[1:]])/distance[indices[0]]
-                else:
-                    fraction = 1/distance[0]
-                reward_dict[agent_index] *= fraction
-        
+                    local_detcov = - np.log(np.min(detcov))
+                #local_detcov = - np.log(np.min(detcov))
+                #print("centralized")
+            else:
+                local_detcov = - np.log(np.max(detcov))
+                #print("individual")
+            reward_dict.append(local_weight*c_mean*local_detcov)
         mean_nlogdetcov = None
         if not(is_training):
             logdetcov = [np.log(LA.det(b_target.cov)) for b_target in belief_targets[:nb_targets]]
             mean_nlogdetcov = -np.mean(logdetcov)
-        return reward,np.array(reward_dict), False, mean_nlogdetcov
+        return global_reward,global_reward + np.array(reward_dict), False, mean_nlogdetcov
 
 
 def reward_fun(scaled, agents, nb_targets, belief_targets, is_training=True, c_mean=0.1):

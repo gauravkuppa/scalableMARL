@@ -121,10 +121,10 @@ class maTrackingBase(gym.Env):
         rand_r = np.random.rand() * (max_lin_dist - min_lin_dist) + min_lin_dist
         rand_xy = np.array([rand_r * np.cos(rand_ang), rand_r * np.sin(rand_ang)]) + o_xy
         is_valid = not(map_utils.is_collision(self.MAP, rand_xy))
-        if not is_valid:
+        """if not is_valid:
             print(f"Pose is not valid. Generating new pose. {rand_xy}")
         else:
-            print(f"Found valid pose. {rand_xy}")
+            print(f"Found valid pose. {rand_xy}")"""
         return is_valid, [rand_xy[0], rand_xy[1], rand_ang]
 
     def get_init_pose(self, init_pose_list=[], **kwargs):

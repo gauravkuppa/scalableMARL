@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "environment" : [{"PYTHONPATH":"${PYTHONPATH}:$PWD/.:$PWD/envs/"}],
-            "args": ["--nb_agents", "2", "--nb_targets", "2", "--reward_type", "Max", "--mode", "test", "--log_dir", "./results/maTT/setTracking-v2__09201815"]
+            "args": ["--nb_agents", "2", "--nb_targets", "2"] // , "--reward_type", "Max", "--mode", "test", "--log_dir", "./results/maTT/setTracking-v2__09201815"]
         }
     ]
 }

@@ -339,6 +339,19 @@ class setTrackingEnv2(maTrackingBase):
 
     def reward_fun(self, agents, nb_targets, belief_targets, observed, is_training=True, c_mean=0.1,scaled = False):
         #TODO: reward should be per agent
+        centralized_belief = {f"target-{i}": LA.det(b.cov[:2, :2]) for i, b in enumerate(belief_targets)}
+        best_decentralized_belief = {f"target-{i}": float('inf') for i in range(nb_targets)}
+        for id,agent in enumerate(self.agents):
+            detcov = [LA.det(b.cov[:2, :2]) for b in agent.belief]
+            for target_id, cov in enumerate(detcov):
+                key = f"target-{target_id}"
+                if key in best_decentralized_belief.keys():
+                    if cov < best_decentralized_belief[key]:
+                        best_decentralized_belief[key] = cov
+                else:
+                    print(best_decentralized_belief.keys())
+        assert np.isclose(np.array(list(centralized_belief.values())), np.array(list(best_decentralized_belief.values()))).all(), f"centralized belief: {centralized_belief} best decentralized belief {best_decentralized_belief}"
+        #import pdb; pdb.set_trace()
         global_weight = 0.5
         local_weight = 0.2
         globaldetcov = [LA.det(b_target.cov) for b_target in belief_targets]
@@ -402,9 +415,7 @@ class setTrackingEnv2(maTrackingBase):
                     detcov = np.ravel(observed_detcov)
                     local_detcov = - np.mean(np.log(detcov))
                 else:
-                    local_detcov = - np.log(np.min(detcov))
-                #local_detcov = - np.log(np.min(detcov))
-                #print("centralized")
+                    local_detcov = - np.log(np.min(detcov)) # penalize
             else:
                 local_detcov = - np.log(np.max(detcov))
                 #print("individual")

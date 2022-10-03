@@ -93,7 +93,7 @@ METADATA_v4 = {
         'action_w': [np.pi/2, 0, -np.pi/2, -np.pi], # action primitives - angular velocities.
         'const_q': 0.001, # target noise constant in beliefs.
         'const_q_true': 0.01, # target noise constant of actual targets.
-        'coverage_reward': 25.0 # adding coverage reward
+        'coverage_reward': 0.0 # adding coverage reward
     }
 
 
@@ -154,4 +154,4 @@ METADATAS = {
     "inf_comms":METADATA_v4_inf_comms
 }
 ##Beliefs are initialized near target
-METADATA=METADATAS["inf_comms"]
+METADATA=METADATAS["4"]

@@ -365,7 +365,7 @@ class setTrackingEnv2(maTrackingBase):
         ## discretize grid
         #grid = torch.zeros(self.MAP.mapmax[0], self.MAP.mapmax[1])
         ## find occupied cells by all agent's sensor radius
-        square_side_divided_by_2 = METADATA['sensor_r']/2 * np.sqrt(np.pi)
+        """square_side_divided_by_2 = METADATA['sensor_r']/2 * np.sqrt(np.pi)
         rectangles = []
         coverage_rew_dict = np.zeros(shape=len(self.agents))
 
@@ -393,7 +393,7 @@ class setTrackingEnv2(maTrackingBase):
             rectangles = np.logical_and(np.logical_and(rectangles_x>=r1,rectangles_x<=r2)
                                         ,np.logical_and(rectangles_y>=c1,rectangles_y<=c2))
             coverage_reward = self.update_global_coverage_map(rectangles,np.exp(np.array([-1/40])))
-            coverage_rew_dict[j] = coverage_reward/(np.prod(self.MAP.mapmax))
+            coverage_rew_dict[j] = coverage_reward/(np.prod(self.MAP.mapmax))"""
             #self.draw_circle(grid, agent.state[0], agent.state[1], METADATA['sensor_r'])
         #sensor_footprint = union_rectangles(rectangles)
 

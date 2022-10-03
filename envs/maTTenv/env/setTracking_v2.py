@@ -339,7 +339,7 @@ class setTrackingEnv2(maTrackingBase):
 
     def reward_fun(self, agents, nb_targets, belief_targets, observed, is_training=True, c_mean=0.1,scaled = False):
         #TODO: reward should be per agent
-        centralized_belief = {f"target-{i}": LA.det(b.cov[:2, :2]) for i, b in enumerate(belief_targets)}
+        """centralized_belief = {f"target-{i}": LA.det(b.cov[:2, :2]) for i, b in enumerate(belief_targets)}
         best_decentralized_belief = {f"target-{i}": float('inf') for i in range(nb_targets)}
         for id,agent in enumerate(self.agents):
             detcov = [LA.det(b.cov[:2, :2]) for b in agent.belief]
@@ -350,11 +350,11 @@ class setTrackingEnv2(maTrackingBase):
                         best_decentralized_belief[key] = cov
                 else:
                     print(best_decentralized_belief.keys())
-        assert np.isclose(np.array(list(centralized_belief.values())), np.array(list(best_decentralized_belief.values()))).all(), f"centralized belief: {centralized_belief} best decentralized belief {best_decentralized_belief}"
+        assert np.isclose(np.array(list(centralized_belief.values())), np.array(list(best_decentralized_belief.values()))).all(), f"centralized belief: {centralized_belief} best decentralized belief {best_decentralized_belief}"""
         #import pdb; pdb.set_trace()
-        global_weight = 0.5
+        global_weight = 1
         local_weight = 0.2
-        globaldetcov = [LA.det(b_target.cov) for b_target in belief_targets]
+        globaldetcov = [LA.det(b_target.cov[:2, :2]) for b_target in belief_targets]
         globaldetcov = np.ravel(globaldetcov)
         global_max_reward = -np.log(np.max(globaldetcov))
         global_reward = global_weight * c_mean * global_max_reward
@@ -406,7 +406,8 @@ class setTrackingEnv2(maTrackingBase):
         
         reward_dict = []
         for id,agent in enumerate(self.agents):
-            observed_detcov = [LA.det(belief.cov) for target_id, belief in enumerate(agent.belief) if observed[id][target_id]]
+            reward_dict.append(global_reward)
+            """observed_detcov = [LA.det(belief.cov) for target_id, belief in enumerate(agent.belief) if observed[id][target_id]]
             detcov = [LA.det(b.cov) for b in agent.belief]
             detcov = np.ravel(detcov)
             if is_training:
@@ -419,12 +420,12 @@ class setTrackingEnv2(maTrackingBase):
             else:
                 local_detcov = - np.log(np.max(detcov))
                 #print("individual")
-            reward_dict.append(local_weight*c_mean*local_detcov)
+            reward_dict.append(local_weight*c_mean*local_detcov)"""
         mean_nlogdetcov = None
         if not(is_training):
             logdetcov = [np.log(LA.det(b_target.cov)) for b_target in belief_targets[:nb_targets]]
             mean_nlogdetcov = -np.mean(logdetcov)
-        return global_reward,global_reward + np.array(reward_dict), False, mean_nlogdetcov
+        return global_reward, np.array(reward_dict), False, mean_nlogdetcov
 
 
 def reward_fun(scaled, agents, nb_targets, belief_targets, is_training=True, c_mean=0.1):

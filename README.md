@@ -1,19 +1,18 @@
 # scalableMARL
 
-[Scalable Reinforcement Learning Policies for Multi-Agent Control](https://arxiv.org/abs/2011.08055)
+Based off of [Scalable Reinforcement Learning Policies for Multi-Agent Control](https://arxiv.org/abs/2011.08055)
 
 CD. Hsu, H. Jeong, GJ. Pappas, P. Chaudhari. "Scalable Reinforcement Learning Policies for Multi-Agent Control". IEEE International Conference on Intelligent Robots and Systems (IROS), Prague, Czech Republic, 2021.
 
 Multi-Agent Reinforcement Learning method to learn scalable control polices for multi-agent target tracking.
 
-+ Author: Christopher Hsu
-+ Email: chsu8@seas.upenn.edu
-+ Affiliation: 
-    - Department of Electrical and Systems Engineering
-    - GRASP Laboratory
-    - @ University of Pennsylvania
+Features made since
 
-Currently supports Python3.8 and is developed in Ubuntu 20.04
+- Added dynamic targets
+- Implemented PPO algorithm to track targets
+- Extended to multiple agents and multiple targets
+- Implemented communication between agents about target belief states
+
 
 ## scalableMARL file structure
 Within scalableMARL (highlighting the important files):
